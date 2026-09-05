@@ -148,8 +148,14 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:var(--ink)}
 .daylist{display:flex;flex-direction:column;gap:5px;flex:1 1 auto;min-width:0;min-height:0;overflow-y:auto;padding-right:4px}
 .postit{flex:0 0 auto;position:relative;display:flex;flex-direction:column}
 .postit textarea{width:100%;flex:1 1 auto;min-height:120px;background:var(--postit);border:1px solid var(--postit-line);border-radius:10px;padding:14px;resize:none;line-height:1.5;font-size:15px;box-shadow:0 2px 8px rgba(140,120,20,.12)}
-.postit .pl{position:absolute;top:8px;left:14px;font-size:11.5px;font-weight:700;letter-spacing:.06em;color:#9a842e;text-transform:uppercase;pointer-events:none}
-.postit textarea{padding-top:28px}
+.postit .notehdr{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;background:transparent;padding:6px 6px 3px;font-size:11.5px;font-weight:700;letter-spacing:.06em;color:#9a842e;text-transform:uppercase;cursor:default}
+.postit .notehdr .notecaret{display:none;font-size:14px}
+.mday-nav{display:flex;align-items:center;gap:8px;margin:2px 0 10px}
+.mday-nav button{border:1px solid var(--line);background:var(--surface);border-radius:9px;height:40px;min-width:44px;font-size:20px;line-height:1;color:var(--muted)}
+.mday-nav button:disabled{opacity:.35}
+.mday-lbl{flex:1;text-align:center;font-size:16px}
+.mday-lbl b{font-weight:800}
+.mday-lbl.today b{color:var(--accent)}
 .rzw{position:absolute;left:-9px;top:0;width:11px;height:100%;cursor:col-resize;z-index:3;touch-action:none}
 .editmode .rzw::after{content:"";position:absolute;left:4px;top:30%;height:40%;width:3px;background:var(--accent);border-radius:2px;opacity:.55}
 .slotrow{display:flex;flex-direction:column;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);padding:7px 12px;cursor:pointer;position:relative;flex:0 0 auto}
@@ -294,6 +300,29 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:var(--ink)}
 .toggle input:checked + .tk::after{left:21px}
 @media(min-width:520px){.scrim{align-items:center}.modal{border-radius:16px}}
 @media(max-width:760px){.setwrap{grid-template-columns:1fr}.setnav{flex-direction:row;overflow-x:auto;position:static}.setnav button{white-space:nowrap}.wrap{padding:14px 10px 90px}.daywrap,.classwrap{flex-direction:column}.postit{width:100%!important;flex:0 0 auto}.postit textarea{min-height:150px}.classscroll{max-width:none}.rzw{display:none}}
+@media(max-width:600px){
+  .topbar{padding:6px 10px;gap:7px}
+  .brand b{font-size:16px}
+  .brand span{display:none}
+  .seg{order:9;flex:1 0 100%;flex-wrap:nowrap;overflow-x:auto;padding:2px;-webkit-overflow-scrolling:touch;margin-top:1px}
+  .seg button{padding:6px 11px;font-size:13.5px;white-space:nowrap;flex:0 0 auto}
+  .fontctl button{width:28px;height:26px;font-size:15px}
+  .fontctl .lvl{font-size:11px;min-width:30px}
+  .themebtn{padding:5px 8px}
+  .status .txt{display:none}
+  .status{gap:0}.status .dot{width:11px;height:11px}
+  .viewhead h2{font-size:19px}
+  .wrap.fitview{padding-bottom:8px}
+  .classbtns{flex-wrap:nowrap;overflow-x:auto;padding-bottom:5px;-webkit-overflow-scrolling:touch}
+  .classbtn{flex:0 0 auto;touch-action:pan-x}
+  .postit{flex:0 0 auto!important}
+  .postit .notehdr{cursor:pointer;background:var(--postit);border:1px solid var(--postit-line);border-radius:10px;padding:12px 14px;font-size:13px;color:#8a6d1e}
+  .postit .notehdr .notecaret{display:inline}
+  .postit textarea{display:none;margin-top:6px;min-height:0}
+  .postit.open textarea{display:block;height:40vh}
+  body.dark .postit .notehdr{color:#c9b56a}
+  #editlayout,#resetlayout{display:none}
+}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:80;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 .helpsteps{margin:4px 0 0;padding-left:22px;font-size:14.5px;line-height:1.5}
@@ -392,7 +421,7 @@ function defaultState(){
     timetable:{A:{1:{},2:{},3:{},4:{},5:{},6:{},7:{}},B:{1:{},2:{},3:{},4:{},5:{},6:{},7:{}},C:{1:{},2:{},3:{},4:{},5:{},6:{},7:{}}},
     terms:[],termBreaks:[],holidays:[],showDiffLabels:true,anchor:{date:ymd(mondayOf(today)),week:"A"},order:[]
   },lessons:{},dayNotes:{},classNotes:{},
-  ui:{view:"week",weekAnchor:ymd(mondayOf(today)),day:ymd(today),classId:null,setTab:"start",editLayout:false,ttWeek:"A"},
+  ui:{view:"week",weekAnchor:ymd(mondayOf(today)),day:ymd(today),classId:null,setTab:"start",editLayout:false,ttWeek:"A",wDay:0,noteOpen:false},
   meta:{updatedAt:0,settingsUpdatedAt:0}};
 }
 function migrate(s){
@@ -514,7 +543,7 @@ const app=document.getElementById("app");
 function render(){
   document.querySelectorAll("#viewseg button").forEach(b=>b.classList.toggle("on",b.dataset.v===S.ui.view));
   document.body.classList.toggle("editmode",!!S.ui.editLayout);
-  app.classList.toggle("fitview",S.ui.view==="class"||S.ui.view==="day");
+  app.classList.toggle("fitview",S.ui.view==="class"||S.ui.view==="day"||(S.ui.view==="week"&&isMobile()));
   const v=S.ui.view;
   if(v==="week")app.innerHTML=viewWeek();
   else if(v==="day")app.innerHTML=viewDay();
@@ -585,6 +614,22 @@ function weekTitleBar(monday,teachingWk,wk,withEdit){
     ${withEdit?`<div class="spacer"></div>${editToggle()}`:""}
   </div>`;
 }
+function mobileWeek(monday,teachingWk,wk,dows,todayStr){
+  let wi=S.ui.wDay||0;
+  // default to today if it's in this week
+  const ti=dows.findIndex(dw=>ymd(addDays(monday,dw-1))===todayStr);
+  if(S.ui._wdayAnchor!==S.ui.weekAnchor){ if(ti>=0)wi=ti; S.ui._wdayAnchor=S.ui.weekAnchor; }
+  if(wi>=dows.length)wi=dows.length-1; if(wi<0)wi=0; S.ui.wDay=wi;
+  const dow=dows[wi]; const d=addDays(monday,dow-1); const s=ymd(d);
+  const pat=patternFor(s); const mode=dayMode(s); const holName=(mode==="break")?(breakName(s)||"Break"):(mode==="holiday")?(closureName(s)||"Closed"):"";
+  let list="";
+  if(!pat||mode==="off")list=`<div class="offday">${holName?esc(holName):(inTerm(s)?"No school":"Outside term")}</div>`;
+  else pat.slots.forEach(sl=>list+=dayRow(s,sl));
+  const isT=s===todayStr;
+  return `${checklistHTML()}${weekTitleBar(monday,teachingWk,wk,true)}
+  <div class="mday-nav"><button data-wday="-1" ${wi<=0?"disabled":""}>‹</button><div class="mday-lbl ${isT?"today":""}"><b>${DOW[dow-1]}</b> <span class="tnum">${fmtShort(d)}</span>${holName?`<span class="pill big off" style="font-size:13px;margin-left:6px">${esc(holName)}</span>`:""}</div><button data-wday="1" ${wi>=dows.length-1?"disabled":""}>›</button></div>
+  <div class="daywrap" id="daywrap"><div class="daylist${holName?" holwrap":""}" id="daylist">${holName?`<div class="daywater"><span>${esc(holName)}</span></div>`:""}${list}</div></div>`;
+}
 function viewWeek(){
   const monday=parseYmd(S.ui.weekAnchor);
   const dows=activeDays();
@@ -593,6 +638,7 @@ function viewWeek(){
   const teachingWk=isTeachingWeek(monday); const wk=weekTypeFor(ymd(monday));
   const topBar=`${checklistHTML()}${weekTitleBar(monday,teachingWk,wk,true)}`;
   if(!dows.length)return topBar+`<div class="offday" style="padding:20px">No days are set up yet. In Settings → Day patterns, tick which days you teach.</div>`;
+  if(isMobile())return mobileWeek(monday,teachingWk,wk,dows,todayStr);
   const dayHead=(nm,d,isT,row,edge)=>`<div class="colh dayh ${isT?"today":""}" style="grid-column:${edge};grid-row:${row}" data-col="${nm}"><div class="dhline"><span class="dow">${nm}</span> <span class="dt tnum">${fmtShort(d)}</span></div>${(S.ui.editLayout&&row===1)?`<div class="rzc" data-col="${nm}"></div>`:""}</div>`;
   const botRow=nRows+2;
   let cells=`<div class="colh corner" style="grid-column:1;grid-row:1"></div><div class="colh corner" style="grid-column:1;grid-row:${botRow}"></div>`;
@@ -693,7 +739,7 @@ function viewDay(){
   ${S.ui.editLayout?`<div class="editbar"><b>Adjusting layout.</b> Drag a row's bottom edge to change its height, or the note's left edge to widen it.</div>`:""}
   <div class="daywrap" id="daywrap">
     <div class="daylist${holName?" holwrap":""}" id="daylist">${holName?`<div class="daywater"><span>${esc(holName)}</span></div>`:""}${list}</div>
-    <div class="postit" style="width:${noteW}px">${S.ui.editLayout?`<div class="rzw" id="rzw"></div>`:""}<div class="pl">Notes · today</div><textarea id="daynote" placeholder="A scratchpad for the whole day…">${esc(getDayNote(s))}</textarea></div>
+    <div class="postit ${S.ui.noteOpen?"open":""}" style="width:${noteW}px">${S.ui.editLayout?`<div class="rzw" id="rzw"></div>`:""}<button type="button" class="notehdr" data-notetoggle><span class="pl">Notes · today</span><span class="notecaret">▾</span></button><textarea id="daynote" placeholder="A scratchpad for the whole day…">${esc(getDayNote(s))}</textarea></div>
   </div>`;
 }
 function dayRow(dateStr,sl){
@@ -739,7 +785,7 @@ function viewClass(){
     <div class="mini" style="margin:9px 2px 12px">${occ.length} lesson${occ.length===1?"":"s"} · jumps to your next one</div>
     <div class="classwrap" id="classwrap">
       <div class="classscroll" id="classscroll"><div class="planlist" id="planlist">${rows}</div></div>
-      <div class="postit classnote" style="width:${(LAYOUT.day.classNoteW||300)}px"><div class="pl">Notes · this class</div><textarea id="classnote" placeholder="Scratchpad for this class…">${esc(getClassNote(cid))}</textarea></div>
+      <div class="postit classnote ${S.ui.noteOpen?"open":""}" style="width:${(LAYOUT.day.classNoteW||300)}px"><button type="button" class="notehdr" data-notetoggle><span class="pl">Notes · this class</span><span class="notecaret">▾</span></button><textarea id="classnote" placeholder="Scratchpad for this class…">${esc(getClassNote(cid))}</textarea></div>
     </div>`;
 }
 function classOccurrences(cid){
@@ -988,7 +1034,13 @@ function val(id){const e=document.getElementById(id);return e?(e.value||"").trim
    ========================================================================= */
 function wire(){
   app.querySelectorAll("[data-edit]").forEach(el=>el.addEventListener("click",ev=>{ if(ev.target.closest(".rzr2"))return; const [d,s]=el.dataset.edit.split("|");openEditor(d,s); }));
-  app.querySelectorAll("[data-week]").forEach(b=>b.onclick=()=>{const n=+b.dataset.week;S.ui.weekAnchor=n===0?ymd(mondayOf(new Date())):ymd(addDays(parseYmd(S.ui.weekAnchor),n*7));save();render();});
+  app.querySelectorAll("[data-week]").forEach(b=>b.onclick=()=>{const n=+b.dataset.week;S.ui.weekAnchor=n===0?ymd(mondayOf(new Date())):ymd(addDays(parseYmd(S.ui.weekAnchor),n*7));S.ui._wdayAnchor=null;save();render();});
+  app.querySelectorAll("[data-wday]").forEach(b=>b.onclick=()=>{S.ui.wDay=(S.ui.wDay||0)+(+b.dataset.wday);save();render();});
+  const mdl=document.getElementById("daylist");
+  if(mdl&&S.ui.view==="week"){let sx=0,sy=0,sw=false;
+    mdl.addEventListener("touchstart",e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;sw=true;},{passive:true});
+    mdl.addEventListener("touchend",e=>{if(!sw)return;sw=false;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+      if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.6){S.ui.wDay=(S.ui.wDay||0)+(dx<0?1:-1);save();render();}},{passive:true});}
   app.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{const n=+b.dataset.day;S.ui.day=n===0?ymd(new Date()):ymd(addDays(parseYmd(S.ui.day),n));save();render();});
   app.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>{S.ui.view="settings";S.ui.setTab=b.dataset.goto;save();render();});
   const el=document.getElementById("editlayout"); if(el)el.onclick=()=>{S.ui.editLayout=!S.ui.editLayout;save();render();};
@@ -1013,6 +1065,7 @@ function wire(){
 
   // day note + resizers
   const dn=document.getElementById("daynote"); if(dn){let tmr; dn.addEventListener("input",()=>{clearTimeout(tmr);tmr=setTimeout(()=>setDayNote(S.ui.day,dn.value),400);});}
+  app.querySelectorAll("[data-notetoggle]").forEach(b=>b.addEventListener("click",()=>{const p=b.closest(".postit");if(!p)return;const open=p.classList.toggle("open");S.ui.noteOpen=open;const c=p.querySelector(".notecaret");if(c)c.textContent=open?"▴":"▾";}));
   const cn=document.getElementById("classnote"); if(cn){let tmr2; cn.addEventListener("input",()=>{clearTimeout(tmr2);tmr2=setTimeout(()=>setClassNote(S.ui.classId,cn.value),400);});}
   if(S.ui.editLayout)wireResizers();
 
@@ -1082,7 +1135,7 @@ function enableClassButtons(container){
   const onDown=e=>{ const btn=e.target.closest(".classbtn"); if(!btn||e.button===2)return;
     st={btn,id:btn.dataset.cls,kind:(itemById(btn.dataset.cls)||{}).kind,x0:e.clientX,y0:e.clientY,drag:false,pid:e.pointerId}; };
   const onMove=e=>{ if(!st)return;
-    if(!st.drag){ if(Math.hypot(e.clientX-st.x0,e.clientY-st.y0)<6)return;
+    if(!st.drag){ if(isMobile())return; if(Math.hypot(e.clientX-st.x0,e.clientY-st.y0)<6)return;
       st.drag=true; st.btn.classList.add("dragging"); try{st.btn.setPointerCapture(st.pid);}catch(_){} }
     e.preventDefault();
     const sibs=[...container.querySelectorAll(".classbtn")].filter(b=>b!==st.btn && (itemById(b.dataset.cls)||{}).kind===st.kind);
@@ -1134,13 +1187,15 @@ function attachDrag(handle,axis,getStart,onSize,invert){
 document.getElementById("viewseg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S.ui.view=b.dataset.v; if(S.ui.view!=="week"&&S.ui.view!=="day")S.ui.editLayout=false; save();render();});
 
 /* font controls */
-function fontScaleFor(v){const f=LAYOUT.fontScale||{};return f[v]||1.05;}
+function isMobile(){return window.innerWidth<=600;}
+function fontScaleFor(v){const f=LAYOUT.fontScale||{};if(f[v]!=null)return f[v];return isMobile()?0.9:1.05;}
 function fitScroll(sel,zoomKey){const el=document.querySelector(sel);if(!el)return;
   const z=fontScaleFor(zoomKey)||1; const top=el.getBoundingClientRect().top;
   const avail=window.innerHeight-top-16; el.style.height=(Math.max(200,avail)/z)+"px";}
-function fitCurrent(){if(S.ui.view==="class")fitScroll("#classwrap","class");else if(S.ui.view==="day")fitScroll("#daywrap","day");}
+function fitCurrent(){if(document.getElementById("classwrap"))fitScroll("#classwrap","class");else if(document.getElementById("daywrap"))fitScroll("#daywrap",S.ui.view==="week"?"week":"day");}
 function applyFont(){const sc=fontScaleFor(S.ui.view);const el=document.getElementById("app");if(el)el.style.zoom=String(sc);document.body.style.zoom="";const lvl=document.getElementById("flvl");if(lvl)lvl.textContent=Math.round(sc*100)+"%";fitCurrent();}
-window.addEventListener("resize",fitCurrent);
+let _wasMobile=isMobile();
+window.addEventListener("resize",()=>{const m=isMobile();if(m!==_wasMobile){_wasMobile=m;render();}else fitCurrent();});
 document.getElementById("finc").onclick=()=>{const v=S.ui.view;LAYOUT.fontScale[v]=Math.round(Math.min(2,fontScaleFor(v)+0.1)*100)/100;saveLayout();applyFont();};
 document.getElementById("fdec").onclick=()=>{const v=S.ui.view;LAYOUT.fontScale[v]=Math.round(Math.max(0.7,fontScaleFor(v)-0.1)*100)/100;saveLayout();applyFont();};
 const ICON_MOON='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>';
